@@ -46,3 +46,46 @@ std::vector<Point3D> generate_point_cloud(int num_points) {
     }
     return cloud;
 }
+
+int main() {
+    const int NUM_POINTS = 5000000;
+    const float VOXEL_SIZE = 2.0f;
+
+    std::cout << "Generowanie punktow...\n";
+    std::vector<Point3D> cloud = generate_point_cloud(NUM_POINTS);
+
+    std::cout << "Grupowanie sekwencyjne...\n";
+    
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    std::unordered_map<VoxelKey, VoxelData, VoxelKeyHash> voxel_grid;
+
+    for(const auto& p : cloud) {
+        VoxelKey key = get_voxel_key(p, VOXEL_SIZE);
+
+        voxel_grid[key].sum.x += p.x;
+        voxel_grid[key].sum.y += p.y;
+        voxel_grid[key].sum.z += p.z;
+        voxel_grid[key].count++;
+    }
+
+    std::vector<Point3D> simplified_cloud;
+    simplified_cloud.reserve(voxel_grid.size());
+
+    for(const auto& pair : voxel_grid) {
+        float avg_x = pair.second.sum.x / pair.second.count;
+        float avg_y = pair.second.sum.y / pair.second.count;
+        float avg_z = pair.second.sum.z / pair.second.count;
+        
+        simplified_cloud.push_back({avg_x, avg_y, avg_z});
+    }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end_time - start_time;
+
+    std::cout << "Gotowe. Czas wykonania: " << elapsed.count() << " s\n";
+    std::cout << "Liczba punktów wejsciowych: " << cloud.size() << "\n";
+    std::cout << "Liczba wokseli (zredukowana chmura) " << simplified_cloud.size() << "\n";
+
+    return 0;
+}
